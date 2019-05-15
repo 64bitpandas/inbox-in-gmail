@@ -323,7 +323,7 @@ const buildBundleWrapper = function (email, label, hasImportantMarkers) {
 
 	addClassToEmail(bundleWrapper, BUNDLE_WRAPPER_CLASS);
 
-	bundleWrapper.onclick = () => location.href = `#search/in%3Ainbox+label%3A${fixLabel(label)}`;
+	bundleWrapper.onclick = () => location.href = `#search/in%3Ainbox+label%3A${fixLabel(label)}+-in%3Astarred`;
 
 	if (email && email.parentNode) email.parentElement.insertBefore(bundleWrapper, email);
 };
@@ -439,31 +439,33 @@ const getEmails = () => {
 		if (info.labels.length) {
 			const participants = Array.from(getEmailParticipants(email));
 			const firstParticipant = participants[0].getAttribute('name');
-			info.labels.forEach(label => {
-				if (!(label in labelStats)) {
-					labelStats[label] = {
-						title: label,
-						count: 1,
-						senders: [{
+			if (!info.isStarred) {
+				info.labels.forEach(label => {
+					if (!(label in labelStats)) {
+						labelStats[label] = {
+							title: label,
+							count: 1,
+							senders: [{
+								name: firstParticipant,
+								isUnread: info.isUnread
+							}]
+						};
+					} else { 
+						labelStats[label].count++;
+						labelStats[label].senders.push({
 							name: firstParticipant,
 							isUnread: info.isUnread
-						}]
-					};
-				} else { 
-					labelStats[label].count++;
-					labelStats[label].senders.push({
-						name: firstParticipant,
-						isUnread: info.isUnread
-					});
-				}
-				if (info.isUnread) labelStats[label].containsUnread = true;
-			});
+						});
+					}
+					if (info.isUnread) labelStats[label].containsUnread = true;
+				});
+			}
 		}
 
 		info.subjectEl = email.querySelector('.y6');
 		info.subject = info.subjectEl && info.subjectEl.innerText.trim();
 
-		info.isBundleEmail = () => checkEmailClass(email, BUNDLED_EMAIL_CLASS);
+		info.isBundleEmail = () => checkEmailClass(email, BUNDLED_EMAIL_CLASS) && !info.isStarred;
 		info.isBundleWrapper = () => checkEmailClass(email, BUNDLE_WRAPPER_CLASS);
 		info.avatarAlreadyProcessed = () => checkEmailClass(email, AVATAR_EMAIL_CLASS);
 		info.bundleAlreadyProcessed = () => checkEmailClass(email, BUNDLED_EMAIL_CLASS) || checkEmailClass(email, BUNDLE_WRAPPER_CLASS);
