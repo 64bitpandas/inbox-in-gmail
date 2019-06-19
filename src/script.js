@@ -18,6 +18,8 @@ const AVATAR_CLASS = 'avatar';
 const AVATAR_OPTION_CLASS = 'show-avatar-enabled';
 const STYLE_NODE_ID_PREFIX = 'hide-email-';
 
+const TEST_CLASS = 'test-test-test'
+
 const DATE_LABELS = {
 	TODAY: 'Today',
 	YESTERDAY: 'Yesterday',
@@ -31,6 +33,8 @@ let loadedMenu = false;
 let labelStats = {};
 let hiddenEmailIds = [];
 let options = {};
+
+let bundledEmailList = {};
 
 /* remove element */
 Element.prototype.remove = function () {
@@ -323,7 +327,8 @@ const buildBundleWrapper = function (email, label, hasImportantMarkers) {
 
 	addClassToEmail(bundleWrapper, BUNDLE_WRAPPER_CLASS);
 
-	bundleWrapper.onclick = () => location.href = `#search/in%3Ainbox+label%3A${fixLabel(label)}+-in%3Astarred`;
+	// bundleWrapper.onclick = () => location.href = `#search/in%3Ainbox+label%3A${fixLabel(label)}+-in%3Astarred`;
+	bundleWrapper.onclick = () => bundleClickHandler(label, email.parentElement);
 
 	if (email && email.parentNode) email.parentElement.insertBefore(bundleWrapper, email);
 };
@@ -354,6 +359,11 @@ const isSnoozed = (email, curDate, prevDate) => {
 const isStarred = email => {
 	const node = email.querySelector('.T-KT');
 	if (node && node.title !== 'Not starred') return true;
+};
+
+const isImportant = email => {
+	const node = email.querySelector('.pG');
+	if (node && node.getAttribute('aria-label') !== 'Important because you marked it as important.' && node.getAttribute('aria-label') !== 'Important according to Google magic.') return true;
 };
 
 /**
@@ -396,6 +406,7 @@ const getEmails = () => {
 
 	let prevTimeStamp = null;
 	labelStats = {};
+	bundledEmailList = {};
 
 	isInBundleFlag ? addClassToBody(BUNDLE_PAGE_CLASS) : removeClassFromBody(BUNDLE_PAGE_CLASS);
 
@@ -411,11 +422,22 @@ const getEmails = () => {
 		info.dateLabel = buildDateLabel(info.date);
 		info.isSnooze = isSnoozed(email, info.date, prevTimeStamp);
 		info.isStarred = isStarred(email);
+		info.isImportant = isImportant(email);
 		// Only update prevTimeStamp if not snoozed, because we might have multiple snoozes back to back
 		if (!info.isSnooze && info.date) prevTimeStamp = info.date;
 		info.isCalendarEvent = isCalendarEvent(email);
 		info.labels = getLabels(email);
 		info.labels.forEach(l => allLabels.add(l));
+
+
+		// Add email to bundled mail list
+		if(!info.isStarred)
+			info.labels.forEach(l => {
+				if(!bundledEmailList[l])
+					bundledEmailList[l] = [email];
+				else
+					bundledEmailList[l].push(email);
+			});
 
 		info.unbundledAlreadyProcessed = () => checkEmailClass(email, UNBUNDLED_EMAIL_CLASS);
 		// Check for Unbundled parent label, mark row as unbundled
@@ -782,3 +804,25 @@ const init = () => {
 
 if (document.head) init();
 else document.addEventListener('DOMContentLoaded', init);
+
+
+
+///////////////////// CUSTOM SCRIPT //////////////////////
+const bundleClickHandler = (label, parentElement) => {
+	const bundle = document.querySelector(`div[bundleLabel="${label}"]`);
+
+	let activatedBundle = bundleActivated(label);
+
+	for (let openBundle of document.getElementsByClassName(TEST_CLASS))
+		openBundle.classList.remove(TEST_CLASS);
+
+	if(activatedBundle !== bundle)
+		addClassToBundle(label, TEST_CLASS);
+
+	// console.log(bundledEmailList);
+}
+
+// Returns the activated bundle, or null if no bundle is currently activated. Can be used as a boolean value.
+const bundleActivated = () => {
+	return document.getElementsByClassName(TEST_CLASS)[0];
+}
