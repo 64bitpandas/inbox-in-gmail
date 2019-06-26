@@ -34,7 +34,7 @@ let labelStats = {};
 let hiddenEmailIds = [];
 let options = {};
 
-let bundledEmailList = {};
+// let bundledEmailList = {};
 
 /* remove element */
 Element.prototype.remove = function () {
@@ -449,14 +449,14 @@ const getEmails = () => {
 		info.labels.forEach(l => allLabels.add(l));
 
 
-		// Add email to bundled mail list
-		if(!info.isStarred)
-			info.labels.forEach(l => {
-				if(!bundledEmailList[l])
-					bundledEmailList[l] = [email];
-				else
-					bundledEmailList[l].push(email);
-			});
+		// // Add email to bundled mail list
+		// if(!info.isStarred)
+		// 	info.labels.forEach(l => {
+		// 		if(!bundledEmailList[l])
+		// 			bundledEmailList[l] = [email];
+		// 		else
+		// 			bundledEmailList[l].push(email);
+		// 	});
 
 		info.unbundledAlreadyProcessed = () => checkEmailClass(email, UNBUNDLED_EMAIL_CLASS);
 		// Check for Unbundled parent label, mark row as unbundled
@@ -529,7 +529,19 @@ const getEmails = () => {
 	// Inline bundle update
 	let activeBundle = bundleActivated();
 	if(activeBundle) {
-		activeBundle.innerHTML = ``;
+		activeBundle.innerHTML = `
+		<table cellpadding="0" id=":4h" class="F cf zt">
+		`;
+
+		// console.log(bundledEmailList[label]);
+		// for(let email of bundledEmailList[label]) {
+		// 	activeBundle.innerHTML += email;
+		// }
+
+		let bundledEmailList = document.getElementsByClassName("bundled-email");
+		console.log(bundledEmailList);
+
+		activeBundle.innerHTML += `</table>`;
 	}
 
 	return [processedEmails, allLabels];
