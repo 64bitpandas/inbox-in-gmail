@@ -118,15 +118,16 @@ const buildDateLabel = function (date) {
 };
 
 const cleanupDateLabels = function () {
-	if(!bundleActivated()) {
+	// if(!bundleActivated()) {
 		document.querySelectorAll('.time-row').forEach(row => {
 			// Delete any back to back date labels
-			if (row.nextSibling && row.nextSibling.className === 'time-row') row.remove();
+			if (row.nextSibling && (row.nextSibling.className === 'time-row' || row.nextSibling.nodeName === '#text')) row.remove();
 			// Check nextSibling recursively until reaching the next .time-row
 			// If all siblings are .bundled-email, then hide row
 			else if (isEmptyDateLabel(row)) row.hidden = true;
+			else if (row.getElementsByClassName('time')[0].innerHTML === 'undefined') row.hidden = true;
 		});
-	}
+	// }
 };
 
 const isEmptyDateLabel = function (row) {
@@ -553,7 +554,6 @@ const getEmails = () => {
 		// }
 
 		let bundledEmailList = document.getElementsByClassName("bundled-email");
-		console.log(bundledEmailList);
 
 		activeBundle.innerHTML += `</table>`;
 	}
@@ -641,7 +641,7 @@ const updateReminders = (forceRebuildBundleLabel) => {
 		if (emailInfo.isSnooze) label = (lastLabel == null) ? DATE_LABELS.TODAY : lastLabel;
 
 		// Add date label if it's a new label
-		if (label !== lastLabel) {
+		if (label !== lastLabel && label !== undefined && label !== null) {
 			addDateLabel(emailEl, label);
 			lastLabel = label;
 		}
