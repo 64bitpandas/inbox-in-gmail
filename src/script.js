@@ -18,6 +18,8 @@ const AVATAR_CLASS = 'avatar';
 const AVATAR_OPTION_CLASS = 'show-avatar-enabled';
 const STYLE_NODE_ID_PREFIX = 'hide-email-';
 
+const TEST_CLASS = 'test-test-test'
+
 const DATE_LABELS = {
 	TODAY: 'Today',
 	YESTERDAY: 'Yesterday',
@@ -31,6 +33,8 @@ let loadedMenu = false;
 let labelStats = {};
 let hiddenEmailIds = [];
 let options = {};
+
+// let bundledEmailList = {};
 
 /* remove element */
 Element.prototype.remove = function () {
@@ -114,19 +118,22 @@ const buildDateLabel = function (date) {
 };
 
 const cleanupDateLabels = function () {
-	document.querySelectorAll('.time-row').forEach(row => {
-		// Delete any back to back date labels
-		if (row.nextSibling && row.nextSibling.className === 'time-row') row.remove();
-		// Check nextSibling recursively until reaching the next .time-row
-		// If all siblings are .bundled-email, then hide row
-		else if (isEmptyDateLabel(row)) row.hidden = true;
-	});
+	if(!bundleActivated()) {
+		document.querySelectorAll('.time-row').forEach(row => {
+			// Delete any back to back date labels
+			if (row.nextSibling && row.nextSibling.className === 'time-row') row.remove();
+			// Check nextSibling recursively until reaching the next .time-row
+			// If all siblings are .bundled-email, then hide row
+			else if (isEmptyDateLabel(row)) row.hidden = true;
+		});
+	}
 };
 
 const isEmptyDateLabel = function (row) {
 	const sibling = row.nextSibling;
 	if (!sibling) return true;
 	else if (sibling.className === 'time-row') return true;
+	else if(!sibling.classList) return false; //TODO make sure this doesn't break anything
 	else if (![...sibling.classList].includes('bundled-email')) return false;
 	return isEmptyDateLabel(sibling);
 }
@@ -304,13 +311,15 @@ const getBundleTitleColorForLabel = (email, label) => {
 	return bundleTitleColor;
 };
 
-const buildBundleWrapper = function (email, label, hasImportantMarkers) {
+
+// Optional ignore label: String of bundle to ignore build. Use when the bundle is activated.
+const buildBundleWrapper = function (email, label, hasImportantMarkers, optionalIgnoreLabel) {
 	const importantMarkerClass = hasImportantMarkers ? '' : 'hide-important-markers';
 	const bundleImage = getBundleImageForLabel(label);
 	const bundleTitleColor = bundleImage.match(/custom-cluster/) && getBundleTitleColorForLabel(email, label);
 
-	const bundleWrapper = htmlToElements(`
-			<div class="zA yO" bundleLabel="${label}">
+	const htmlContent = `
+	<div class="zA yO bundle-wrapper" bundleLabel="${label}">
 				<span class="oZ-x3 xY aid bundle-image">
 					<img src="${bundleImage}" ${bundleTitleColor ? `style="filter: drop-shadow(0 0 0 ${bundleTitleColor}) saturate(300%)"` : ''}/>
 				</span>
@@ -320,14 +329,29 @@ const buildBundleWrapper = function (email, label, hasImportantMarkers) {
 					<span title="${getRawDate(email)}"/>
 				</span>
 				<div class="y2 bundle-senders"></div>
-			</div>
-	`);
+			</div>`;
 
-	addClassToEmail(bundleWrapper, BUNDLE_WRAPPER_CLASS);
+	console.log("Build bundle wrapper for ", label);
+	console.log(getBundledLabels());
 
-	bundleWrapper.onclick = () => location.href = `#search/in%3Ainbox+label%3A${fixLabel(label)}`;
+	// Rebuild bundles on click
+	if (getBundledLabels()[label]) {
+		if (label !== optionalIgnoreLabel) {
+			document.querySelector(`div[bundleLabel="${label}"]`).outerHTML = htmlContent;
+			document.querySelector(`div[bundleLabel="${label}"]`).onclick = () => bundleClickHandler(label, email.parentElement);
+		}
+	}
 
-	if (email && email.parentNode) email.parentElement.insertBefore(bundleWrapper, email);
+	// Initial bundle creation
+	else if (email && email.parentNode) {
+		const bundleWrapper = htmlToElements(htmlContent);
+		addClassToEmail(bundleWrapper, BUNDLE_WRAPPER_CLASS);
+		email.parentElement.insertBefore(bundleWrapper, email);
+		// bundleWrapper.onclick = () => location.href = `#search/in%3Ainbox+label%3A${fixLabel(label)}+-in%3Astarred`;
+		bundleWrapper.onclick = () => bundleClickHandler(label, email.parentElement);
+	}
+
+
 };
 
 const fixLabel = label => encodeURIComponent(label.replace(/[\/\\& ]/g, '-'));
@@ -356,6 +380,11 @@ const isSnoozed = (email, curDate, prevDate) => {
 const isStarred = email => {
 	const node = email.querySelector('.T-KT');
 	if (node && node.title !== 'Not starred') return true;
+};
+
+const isImportant = email => {
+	const node = email.querySelector('.pG');
+	if (node && node.getAttribute('aria-label') !== 'Important because you marked it as important.' && node.getAttribute('aria-label') !== 'Important according to Google magic.') return true;
 };
 
 /**
@@ -400,6 +429,7 @@ const getEmails = () => {
 	let currentTab = tabs.length && document.querySelector('.aAy[aria-selected="true"]');
 	let prevTimeStamp = null;
 	labelStats = {};
+	bundledEmailList = {};
 
 	isInBundleFlag ? addClassToBody(BUNDLE_PAGE_CLASS) : removeClassFromBody(BUNDLE_PAGE_CLASS);
 
@@ -415,11 +445,22 @@ const getEmails = () => {
 		info.dateLabel = buildDateLabel(info.date);
 		info.isSnooze = isSnoozed(email, info.date, prevTimeStamp);
 		info.isStarred = isStarred(email);
+		info.isImportant = isImportant(email);
 		// Only update prevTimeStamp if not snoozed, because we might have multiple snoozes back to back
 		if (!info.isSnooze && info.date) prevTimeStamp = info.date;
 		info.isCalendarEvent = isCalendarEvent(email);
 		info.labels = getLabels(email);
 		info.labels.forEach(l => allLabels.add(l));
+
+
+		// // Add email to bundled mail list
+		// if(!info.isStarred)
+		// 	info.labels.forEach(l => {
+		// 		if(!bundledEmailList[l])
+		// 			bundledEmailList[l] = [email];
+		// 		else
+		// 			bundledEmailList[l].push(email);
+		// 	});
 
 		info.unbundledAlreadyProcessed = () => checkEmailClass(email, UNBUNDLED_EMAIL_CLASS);
 		// Check for Unbundled parent label, mark row as unbundled
@@ -453,31 +494,33 @@ const getEmails = () => {
 		if (info.labels.length) {
 			const participants = Array.from(getEmailParticipants(email));
 			const firstParticipant = participants[0].getAttribute('name');
-			info.labels.forEach(label => {
-				if (!(label in labelStats)) {
-					labelStats[label] = {
-						title: label,
-						count: 1,
-						senders: [{
+			if (!info.isStarred) {
+				info.labels.forEach(label => {
+					if (!(label in labelStats)) {
+						labelStats[label] = {
+							title: label,
+							count: 1,
+							senders: [{
+								name: firstParticipant,
+								isUnread: info.isUnread
+							}]
+						};
+					} else { 
+						labelStats[label].count++;
+						labelStats[label].senders.push({
 							name: firstParticipant,
 							isUnread: info.isUnread
-						}]
-					};
-				} else { 
-					labelStats[label].count++;
-					labelStats[label].senders.push({
-						name: firstParticipant,
-						isUnread: info.isUnread
-					});
-				}
-				if (info.isUnread) labelStats[label].containsUnread = true;
-			});
+						});
+					}
+					if (info.isUnread) labelStats[label].containsUnread = true;
+				});
+			}
 		}
 
 		info.subjectEl = email.querySelector('.y6');
 		info.subject = info.subjectEl && info.subjectEl.innerText.trim();
 
-		info.isBundleEmail = () => checkEmailClass(email, BUNDLED_EMAIL_CLASS);
+		info.isBundleEmail = () => checkEmailClass(email, BUNDLED_EMAIL_CLASS) && !info.isStarred;
 		info.isBundleWrapper = () => checkEmailClass(email, BUNDLE_WRAPPER_CLASS);
 		info.avatarAlreadyProcessed = () => checkEmailClass(email, AVATAR_EMAIL_CLASS);
 		info.bundleAlreadyProcessed = () => checkEmailClass(email, BUNDLED_EMAIL_CLASS) || checkEmailClass(email, BUNDLE_WRAPPER_CLASS);
@@ -496,10 +539,31 @@ const getEmails = () => {
 		labelStats[label].containsUnread ? addClassToBundle(label, UNREAD_BUNDLE_CLASS) : removeClassFromBundle(label, UNREAD_BUNDLE_CLASS);
 	}
 
+
+	// Inline bundle update
+	let activeBundle = bundleActivated();
+	if(activeBundle) {
+		activeBundle.innerHTML = `
+		<table cellpadding="0" id=":4h" class="F cf zt">
+		`;
+
+		// console.log(bundledEmailList[label]);
+		// for(let email of bundledEmailList[label]) {
+		// 	activeBundle.innerHTML += email;
+		// }
+
+		let bundledEmailList = document.getElementsByClassName("bundled-email");
+		console.log(bundledEmailList);
+
+		activeBundle.innerHTML += `</table>`;
+	}
+
 	return [processedEmails, allLabels];
 };
 
-const updateReminders = () => {
+// forceRebuildBundleLabel - optional. enter name of label (string) if the bundles should be rebuilt. 
+// This is the name of the label to be ignored (see buildBundleWrapper()).
+const updateReminders = (forceRebuildBundleLabel) => {
 	reloadOptions();
 	const [emails, allLabels] = getEmails();
 	const myEmail = getMyEmailAddress();
@@ -508,7 +572,9 @@ const updateReminders = () => {
 	let hasImportantMarkers = checkImportantMarkers();
 	let tabs = getTabs();
 
-	cleanupDateLabels();
+	if(!forceRebuildBundleLabel)
+		cleanupDateLabels();
+
 	const emailBundles = getBundledLabels();
 
 	for (const emailInfo of emails) {
@@ -588,14 +654,15 @@ const updateReminders = () => {
 			}
 
 			const labels = emailInfo.labels.filter(x => !tabs.includes(x));
-			if (isInInboxFlag && !emailInfo.isStarred && labels.length && !emailInfo.isUnbundled && !emailInfo.bundleAlreadyProcessed()) {
+
+			if ((isInInboxFlag && !emailInfo.isStarred && labels.length && !emailInfo.isUnbundled && !emailInfo.bundleAlreadyProcessed()) || forceRebuildBundleLabel) {
 				labels.forEach(label => {
 					addClassToEmail(emailEl, BUNDLED_EMAIL_CLASS);
 					// Insert style node to avoid bundled emails appearing briefly in inbox during redraw
 					if (!hiddenEmailIds.includes(emailEl.id)) createStyleNodeWithEmailId(emailEl.id);
 
-					if (!(label in emailBundles)) {
-						buildBundleWrapper(emailEl, label, hasImportantMarkers);
+					if (!(label in emailBundles) || forceRebuildBundleLabel) {
+						buildBundleWrapper(emailEl, label, hasImportantMarkers, forceRebuildBundleLabel);
 						emailBundles[label] = true;
 					}
 				});
@@ -797,3 +864,33 @@ const init = () => {
 
 if (document.head) init();
 else document.addEventListener('DOMContentLoaded', init);
+
+
+
+///////////////////// CUSTOM SCRIPT BY 64BITPANDAS: INLINE BUNDLES //////////////////////
+
+// Attach to bundle elements
+const bundleClickHandler = (label, parentElement) => {
+	const bundle = document.querySelector(`div[bundleLabel="${label}"]`);
+
+	let activatedBundle = bundleActivated();
+
+	for (let openBundle of document.getElementsByClassName(TEST_CLASS))
+		openBundle.classList.remove(TEST_CLASS);
+
+	// If this bundle should be opened
+	if(activatedBundle !== bundle) {
+		updateReminders(label);
+		addClassToBundle(label, TEST_CLASS);
+	}
+	else {
+		updateReminders(true);
+	}
+
+	console.log('click');
+}
+
+// Returns the activated bundle, or null if no bundle is currently activated. Can be used as a boolean value.
+const bundleActivated = () => {
+	return document.getElementsByClassName(TEST_CLASS)[0];
+}
