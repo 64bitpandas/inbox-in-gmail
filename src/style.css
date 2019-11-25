@@ -1502,3 +1502,7 @@ body.email-bundling-enabled.bundle-page .nH.ar4.B .yi {
 .test-test-test:hover {
 	background: rgb(200,200,200) !important;
 }
+
+.starred-email {
+    display: flex !important;
+}

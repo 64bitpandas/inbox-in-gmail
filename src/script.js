@@ -19,6 +19,7 @@ const AVATAR_OPTION_CLASS = 'show-avatar-enabled';
 const STYLE_NODE_ID_PREFIX = 'hide-email-';
 
 const TEST_CLASS = 'test-test-test'
+const STARRED_EMAIL_CLASS = 'starred-email'
 
 const DATE_LABELS = {
 	TODAY: 'Today',
@@ -668,6 +669,11 @@ const updateReminders = (forceRebuildBundleLabel) => {
 				});
 			} else if (!emailInfo.isUnbundled && !labels.length && hiddenEmailIds.includes(emailEl.id)) {
 				removeStyleNodeWithEmailId(emailEl.id);
+			}
+
+			// Fix pinned emails disappering on bundle click
+			if (isInInboxFlag && emailInfo.isStarred) {
+				addClassToEmail(emailEl, STARRED_EMAIL_CLASS)
 			}
 		}
 	}
