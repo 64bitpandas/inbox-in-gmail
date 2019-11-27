@@ -1506,3 +1506,7 @@ body.email-bundling-enabled.bundle-page .nH.ar4.B .yi {
 .starred-email {
     display: flex !important;
 }
+
+.in-bundle-email {
+    display: flex !important;
+}
