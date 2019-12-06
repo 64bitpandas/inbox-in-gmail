@@ -1496,10 +1496,10 @@ body.email-bundling-enabled.bundle-page .nH.ar4.B .yi {
 /* CUSTOM BUNDLING              				 */
 /* --------------------------------------------- */
 
-.test-test-test {
+.open-bundle {
 	background: rgb(200,200,200) !important;
 }
-.test-test-test:hover {
+.open-bundle:hover {
 	background: rgb(200,200,200) !important;
 }
 

@@ -18,8 +18,9 @@ const AVATAR_CLASS = 'avatar';
 const AVATAR_OPTION_CLASS = 'show-avatar-enabled';
 const STYLE_NODE_ID_PREFIX = 'hide-email-';
 const IN_BUNDLE_CLASS = 'in-bundle-email'; // An email inside an inline bundle
+const OPEN_BUNDLE_CONTAINER = 'open-bundle-container'; 
 
-const TEST_CLASS = 'test-test-test'
+const OPEN_BUNDLE_CLASS = 'open-bundle'
 const STARRED_EMAIL_CLASS = 'starred-email'
 
 const DATE_LABELS = {
@@ -864,7 +865,7 @@ const bundleClickHandler = (label) => {
 
 	let activatedBundle = bundleActivated();
 
-	for (let openBundle of document.getElementsByClassName(TEST_CLASS)) {
+	for (let openBundle of document.getElementsByClassName(OPEN_BUNDLE_CLASS)) {
 		if (openBundle !== bundle)
 			closeBundle(openBundle);
 	}
@@ -872,30 +873,29 @@ const bundleClickHandler = (label) => {
 	// If this bundle should be opened
 	if(activatedBundle !== bundle) {
 		console.log('Opened bundle', label);
-		// updateReminders(label);
-		addClassToBundle(label, TEST_CLASS);
-		bundle.innerHTML = `
-		<table cellpadding="0" class="F cf zt"></table>
-		`;
-		console.log(bundle);
+		addClassToBundle(label, OPEN_BUNDLE_CLASS);
+		bundle.innerHTML = 
+		`<div id="` + OPEN_BUNDLE_CONTAINER + `">
+			<table cellpadding="0" class="F cf zt"></table>
+		 </div>`;
+		document.getElementById(OPEN_BUNDLE_CONTAINER).onclick = (e) => {e.stopPropagation();};
 	}
 	else {
 		closeBundle(bundle);
 	}
-	
 }
 
 const closeBundle = (bundleEl) => {
 	while (bundleEl.getElementsByClassName(IN_BUNDLE_CLASS).length > 0) {
+		// REMOVE emails from bundle
 		for (let email of bundleEl.getElementsByClassName(IN_BUNDLE_CLASS)) {
 			removeClassFromEmail(email, IN_BUNDLE_CLASS);
 			addClassToEmail(email, BUNDLED_EMAIL_CLASS);
 			email['oldParent'].appendChild(email);
-			// console.log(bundleEl.getElementsByClassName(IN_BUNDLE_CLASS))
 		}
 	}
-	bundleEl.classList.remove(TEST_CLASS);
-	console.log('Close bundle', bundleEl.getAttribute('bundleLabel'));
+	bundleEl.classList.remove(OPEN_BUNDLE_CLASS);
+	console.log('Closed bundle', bundleEl.getAttribute('bundleLabel'));
 	updateReminders(true);
 }
 
@@ -903,13 +903,13 @@ const closeBundle = (bundleEl) => {
 // Pass in a label to get the activated bundle of that specific label, or False if it is not open.
 const bundleActivated = (label) => {
 	if(label) {
-		for (let bundle of document.getElementsByClassName(TEST_CLASS)) {
+		for (let bundle of document.getElementsByClassName(OPEN_BUNDLE_CLASS)) {
 			if(bundle.getAttribute('bundleLabel') === label)
 				return bundle;
 		}
 		return false;
 	}
-	return document.getElementsByClassName(TEST_CLASS)[0];
+	return document.getElementsByClassName(OPEN_BUNDLE_CLASS)[0];
 }
 
 // Updates the emails inside the currently opened bundle.
@@ -921,18 +921,17 @@ const updateActiveBundle = (label) => {
 
 		bundledEmailList = Array.prototype.slice.call(document.getElementsByClassName(BUNDLED_EMAIL_CLASS));
 		bundledEmailList.sort((a, b) => { return getRawDate(a) < getRawDate(b); });
-		// console.log(bundledEmailList);
-		activeTable = activeBundle.getElementsByTagName('table')[0];
+		activeTable = document.getElementById(OPEN_BUNDLE_CONTAINER).getElementsByTagName('table')[0];
 
 		if(activeTable) {
-			// let bundledEmailList = document.getElementsByClassName("bundled-email");
-			
+			// ADD emails to active bundle
 			for(let email of bundledEmailList) {
 				if (!checkEmailClass(email, IN_BUNDLE_CLASS) && !checkEmailClass(email, STARRED_EMAIL_CLASS) && !checkEmailClass(email, BUNDLE_WRAPPER_CLASS) && getLabels(email).includes(label)) {
 					addClassToEmail(email, IN_BUNDLE_CLASS);
 					removeClassFromEmail(email, BUNDLED_EMAIL_CLASS);
 					email['oldParent'] = email.parentElement;
 					activeTable.appendChild(email);
+					email.onclick = openEmailFromBundle(email);
 				}
 			}
 		}
@@ -942,3 +941,20 @@ const updateActiveBundle = (label) => {
 		}
 	}
 }
+
+const openEmailFromBundle = (email) => {
+	console.log(email);
+	// prevBundle = email['oldParent'];
+	// prevBundle.appendChild(email);
+	// email.click();
+}
+
+
+// FOR TESTING: Gets the email element that has the subject title given.
+const getEmailWithSubject = (subject) => {
+	return Array.prototype.slice.call(document.getElementsByTagName('span')).filter((sp) => {return sp.innerHTML === subject;})[0].parentElement.parentElement.parentElement;
+}
+
+// setTimeout(() => {
+// 	getEmailWithSubject('[OCF Forums] update available').click();
+// }, 10000)
