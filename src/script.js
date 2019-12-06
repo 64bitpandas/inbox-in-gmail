@@ -919,11 +919,14 @@ const updateActiveBundle = (label) => {
 
 	if (activeBundle) {
 
-		bundledEmailList = document.getElementsByClassName(BUNDLED_EMAIL_CLASS);
+		bundledEmailList = Array.prototype.slice.call(document.getElementsByClassName(BUNDLED_EMAIL_CLASS));
+		bundledEmailList.sort((a, b) => { return getRawDate(a) < getRawDate(b); });
+		// console.log(bundledEmailList);
 		activeTable = activeBundle.getElementsByTagName('table')[0];
 
 		if(activeTable) {
 			// let bundledEmailList = document.getElementsByClassName("bundled-email");
+			
 			for(let email of bundledEmailList) {
 				if (!checkEmailClass(email, IN_BUNDLE_CLASS) && !checkEmailClass(email, STARRED_EMAIL_CLASS) && !checkEmailClass(email, BUNDLE_WRAPPER_CLASS) && getLabels(email).includes(label)) {
 					addClassToEmail(email, IN_BUNDLE_CLASS);
