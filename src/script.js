@@ -897,6 +897,7 @@ const closeBundle = (bundleEl) => {
 	bundleEl.classList.remove(OPEN_BUNDLE_CLASS);
 	console.log('Closed bundle', bundleEl.getAttribute('bundleLabel'));
 	updateReminders(true);
+	canClickEmails = false
 }
 
 // Returns the activated bundle, or null if no bundle is currently activated. Can be used as a boolean value.
@@ -930,10 +931,18 @@ const updateActiveBundle = (label) => {
 					addClassToEmail(email, IN_BUNDLE_CLASS);
 					removeClassFromEmail(email, BUNDLED_EMAIL_CLASS);
 					email['oldParent'] = email.parentElement;
-					activeTable.appendChild(email);
-					email.onclick = openEmailFromBundle(email);
+
+					// Make container for each email
+					let emailTemplate = document.createElement('template');
+					emailTemplate.innerHTML = `<div class="bundle-email-container"></div>`
+					emailTemplate = emailTemplate.content.firstChild;
+					emailTemplate.onclick = openEmailFromBundle(email);
+					emailTemplate.appendChild(email);
+					activeTable.appendChild(emailTemplate);
+					email.setAttribute('draggable', false)
 				}
 			}
+			canClickEmails = true
 		}
 		else {
 			activeBundle.innerHTML = `<table cellpadding="0" class="F cf zt"></table>`;
@@ -943,7 +952,8 @@ const updateActiveBundle = (label) => {
 }
 
 const openEmailFromBundle = (email) => {
-	console.log(email);
+	if(canClickEmails)
+		console.log(email);
 	// prevBundle = email['oldParent'];
 	// prevBundle.appendChild(email);
 	// email.click();
@@ -958,3 +968,9 @@ const getEmailWithSubject = (subject) => {
 // setTimeout(() => {
 // 	getEmailWithSubject('[OCF Forums] update available').click();
 // }, 10000)
+
+window.onclick = (e) => {
+	console.log(e.target)
+}
+// Set to true when bundle is fully initialized
+let canClickEmails = false;

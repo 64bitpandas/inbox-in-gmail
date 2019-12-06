@@ -1510,3 +1510,7 @@ body.email-bundling-enabled.bundle-page .nH.ar4.B .yi {
 .in-bundle-email {
     display: flex !important;
 }
+
+#open-bundle-container {
+    width: 100%;
+}
