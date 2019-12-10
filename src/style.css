@@ -1514,3 +1514,7 @@ body.email-bundling-enabled.bundle-page .nH.ar4.B .yi {
 #open-bundle-container {
     width: 100%;
 }
+
+.bundle-email-container {
+    pointer-events: all;
+}

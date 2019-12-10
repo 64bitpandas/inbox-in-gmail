@@ -20,6 +20,7 @@ const STYLE_NODE_ID_PREFIX = 'hide-email-';
 const IN_BUNDLE_CLASS = 'in-bundle-email'; // An email inside an inline bundle
 const OPEN_BUNDLE_CONTAINER = 'open-bundle-container'; 
 
+const BUNDLE_EMAIL_CONTAINER = 'bundle-email-container';
 const OPEN_BUNDLE_CLASS = 'open-bundle'
 const STARRED_EMAIL_CLASS = 'starred-email'
 
@@ -878,7 +879,12 @@ const bundleClickHandler = (label) => {
 		`<div id="` + OPEN_BUNDLE_CONTAINER + `">
 			<table cellpadding="0" class="F cf zt"></table>
 		 </div>`;
-		document.getElementById(OPEN_BUNDLE_CONTAINER).onclick = (e) => {e.stopPropagation();};
+		document.getElementById(OPEN_BUNDLE_CONTAINER).onclick = (e) => {
+			if(!checkEmailClass(e.target, BUNDLE_WRAPPER_CLASS)) {
+				e.stopPropagation(); 
+				openEmailFromBundle(e.target);
+			}
+		};
 	}
 	else {
 		closeBundle(bundle);
@@ -934,9 +940,11 @@ const updateActiveBundle = (label) => {
 
 					// Make container for each email
 					let emailTemplate = document.createElement('template');
-					emailTemplate.innerHTML = `<div class="bundle-email-container"></div>`
+					emailTemplate.innerHTML = `<div class="` + BUNDLE_EMAIL_CONTAINER + `"></div>`
 					emailTemplate = emailTemplate.content.firstChild;
-					emailTemplate.onclick = openEmailFromBundle(email);
+					// emailTemplate.onclick = openEmailFromBundle(email);
+					emailTemplate.onmouseover = (e) => {e.stopPropagation();};
+					emailTemplate.onmousedown = (e) => {e.stopPropagation();};
 					emailTemplate.appendChild(email);
 					activeTable.appendChild(emailTemplate);
 					email.setAttribute('draggable', false)
@@ -951,12 +959,18 @@ const updateActiveBundle = (label) => {
 	}
 }
 
-const openEmailFromBundle = (email) => {
-	if(canClickEmails)
-		console.log(email);
-	// prevBundle = email['oldParent'];
-	// prevBundle.appendChild(email);
-	// email.click();
+const openEmailFromBundle = (emailChild) => {
+	email = emailChild;
+	while (email.parentElement && !email.classList.contains(IN_BUNDLE_CLASS))
+		email = email.parentElement;
+	// if(canClickEmails)
+	console.log('OPENED EMAIL:', email);
+	prevBundle = email['oldParent'];
+	prevBundle.appendChild(email);
+	setTimeout(() => {
+
+		email.click();
+	}, 3000);
 }
 
 
@@ -969,8 +983,8 @@ const getEmailWithSubject = (subject) => {
 // 	getEmailWithSubject('[OCF Forums] update available').click();
 // }, 10000)
 
-window.onclick = (e) => {
-	console.log(e.target)
-}
+// window.onclick = (e) => {
+// 	console.log(e.target)
+// }
 // Set to true when bundle is fully initialized
 let canClickEmails = false;
